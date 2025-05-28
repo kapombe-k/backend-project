@@ -1,6 +1,8 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, Float, Text, ForeignKey
+from sqlalchemy import Column, Integer, Date, String, Float, Text, ForeignKey
 from sqlalchemy.orm import relationship
+from datetime import date
+
 
 Base = declarative_base()
 
@@ -10,6 +12,7 @@ class Patient(Base):
     name = Column(String, nullable=False)
     age = Column(Integer, nullable=False)
     phone_number = Column(Integer, nullable=False)
+    address = Column(String, nullable=False)
     account_type = Column(String, nullable=False)
     visits = relationship("Visit", back_populates="patient")
     appointments = relationship("Appointments", back_populates="patient")
@@ -24,11 +27,11 @@ class Doctor(Base):
 class Visit(Base):
     __tablename__ = 'visits'
     id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False)
+    date = Column(Date, nullable=False, default=date.today)
     summary = Column(String, nullable=False)
     procedure_details = Column(Text, nullable=False)
     amount_paid = Column(Float, nullable=False)
-    balance = Column(Float)
+    balance = Column(Float, nullable=True)
     doctor_id = Column(Integer, ForeignKey('doctors.id'))
     patient_id = Column(Integer, ForeignKey('patients.id'))
     patient = relationship("Patient", back_populates="visit")
