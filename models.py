@@ -1,7 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, Date, String, Float, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import date
 
 
 Base = declarative_base()
@@ -27,7 +26,7 @@ class Doctor(Base):
 class Visit(Base):
     __tablename__ = 'visits'
     id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False, default=date.today)
+    date = Column(Date, nullable=False)
     summary = Column(String, nullable=False)
     procedure_details = Column(Text, nullable=False)
     amount_paid = Column(Float, nullable=False)
