@@ -24,9 +24,10 @@ def all_patients(session = Depends(get_db)):
 
 # http://localhost:9000/products -> GETs a single patient
 @app.get('/patients/{id}')
-def get_patients(id:int):
+def get_patients(session = Depends(get_db)):
+    patient_id = session.query(Patient)
     print("Patient id", id)
-    return []
+    return patient_id
 
 # http://localhost:9000/products -> POST
 @app.post('/patients')
