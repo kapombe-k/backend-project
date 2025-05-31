@@ -9,7 +9,7 @@ from models import get_db, Patient, Visit, Doctor, Appointment, Prescription
 app = FastAPI()
 
 #this allows network requests from all servers
-app.add_middleware(CORSMiddleware, allow_origins=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 #define the routes
 @app.get('/')
@@ -22,22 +22,22 @@ def all_patients(session = Depends(get_db)):
     all_patients = session.query(Patient).all()
     return all_patients
 
-# http://localhost:9000/products -> GETs a single patient
+# http://localhost:8000/patients -> GETs a single patient
 @app.get('/patients/{id}')
-def get_patients(session = Depends(get_db)):
+def get_patient(session = Depends(get_db)):
     patient_id = session.query(Patient)
     print("Patient id", id)
     return patient_id
 
-# http://localhost:9000/products -> POST
+# http://localhost:8000/patients -> POST
 @app.post('/patients')
 def add_patients():
-    return {'message':'Patient added successfully'}
+    return {'message':'Patient posted successfully'}
 
 @app.patch('/patients/{id}')
 def update_patient(id:int):
     print(f'Patient {id} has been updated')
-    return {'message':'Patient added successfully'}
+    return {'message':'Patient patched successfully'}
 
 @app.delete('/patients/{id}')
 def delete_patient(id:int):

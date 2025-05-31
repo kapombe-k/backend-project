@@ -66,6 +66,4 @@ class Prescription(Base):
     id = Column(Integer, primary_key=True)
     details = Column(Text, nullable=False)
     visit_id = Column(Integer, ForeignKey('visits.id'))
-    visit = relationship("Visit", back_populates="prescriptions")
-
-Base.metadata.create_all(bind=engine)
+    visit = relationship("Visit", back_populates="prescription")
