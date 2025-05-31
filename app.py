@@ -1,7 +1,8 @@
 #Import fastapi package
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-
+from schemas import PatientsSchema
+from sqlalchemy.orm import Session 
 from models import get_db, Patient, Visit, Doctor, Appointment, Prescription
 
 #initialize it
@@ -17,7 +18,7 @@ def index():
     return{'message':'Up and running'}
 
 @app.get('/patients')
-def all_patients(session = Depends(get_db)):
+def all_patients(session: Session = Depends(get_db)):
     #sqlalchemy retrieves all patients from the table
     all_patients = session.query(Patient).all()
     return all_patients
@@ -31,7 +32,7 @@ def get_patient(session = Depends(get_db)):
 
 # http://localhost:8000/patients -> POST
 @app.post('/patients')
-def add_patients():
+def add_patients(patient:PatientsSchema):
     return {'message':'Patient posted successfully'}
 
 @app.patch('/patients/{id}')
