@@ -1,6 +1,5 @@
 # this file contains classes acting as blueprints for post/patch methods
 from pydantic import BaseModel
-from sqlalchemy import Date, Text
 
 class PatientsSchema(BaseModel):
     name: str
@@ -13,7 +12,6 @@ class DoctorsSchema(BaseModel):
     name: str
 
 class VisitsSchema(BaseModel):
-    date: Date
     summary : str
     procedure_details: str
     amount_paid: int
@@ -21,11 +19,7 @@ class VisitsSchema(BaseModel):
     doctor_id: str
     patient_id: str
 
-class AppointmentsSChema(BaseModel):
-    date: Date
+class AppointmentsSchema(BaseModel):
     patient_id: int
     doctor_id: int
 
-class PrescriptionsSchema(BaseModel):
-    details: Text
-    visit_id: int
