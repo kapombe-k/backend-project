@@ -19,11 +19,11 @@ def index():
 
 #======here we define the patient endpoints ========
 # http://localhost:8000/patients -> GETs a single patient
-@app.get('/patients')
-def all_patients(session: Session = Depends(get_db)):
-    #sqlalchemy retrieves all patients from the table
-    all_patients = session.query(Patient).all()
-    return all_patients
+# @app.get('/patients')
+# def all_patients(session: Session = Depends(get_db)):
+#     #sqlalchemy retrieves all patients from the table
+#     all_patients = session.query(Patient).all()
+#     return all_patients
 
 @app.get('/patients')
 def get_all_patients(session: Session = Depends(get_db)):
@@ -32,16 +32,36 @@ def get_all_patients(session: Session = Depends(get_db)):
     print("Patient id", id)
     return patients
 
-@app.get('/pateints/{patient_id}', response_model=PatientsSchema)
+@app.get('/patients/{patient_id}', response_model=PatientsSchema)
 def get_patient(patient_id: int, session: Session = Depends(get_db)):
     # get patient by id
-    patient = session.query(Patient).filter(Patient.id == patient_id)
+    patient = session.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_Not_Found,
-            detail= f"Patient wit ID {patient_id} not found"
+            detail= f"Patient with ID {patient_id} not found"
         )
     return patient
+
+@app.get('/patients/{patient_id}/visits')
+def get_patient_visits(patient_id: int, session: Session = Depends(get_db)):
+    patient = session.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID {patient_id} not found"
+        )
+    return patient.visits # SQLAlchemy's relationship allows us to get the patients visits by id
+
+@app.get('/patients/{patient_id}/appointments')
+def get_patient_appointments(patient_id: int, session: Session = Depends(get_db)):
+    patient = session.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with ID {patient_id} not found"
+        )
+    return patient.appointments # SQLAlchemy's relationship gets us the appointments for this patient id
     
 
 # http://localhost:8000/patients -> POST
@@ -104,6 +124,16 @@ def get_all_visits(session: Session = Depends(get_db)):
     # get all visits from the db
     visit = session.query(Visit).all()
     return visit
+
+@app.get('/visits/{visit_id}/prescriptions')
+def get_visit_prescriptions(visit_id: int, session: Session = Depends(get_db)):
+    visit = session.query(Visit).filter(Visit.id == visit_id).first()
+    if not visit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Visit with ID {visit_id} not found"
+        )
+    return visit.prescription #to take advantage of list/relationship
 
 @app.post('/visits', status_code=status.HTTP_201_CREATED)
 def add_visit(visit: VisitsSchema, session: Session = Depends(get_db)):
@@ -169,6 +199,12 @@ def delete_visit(visit_id:int, session: Session = Depends(get_db)):
     session.commit()
     return {'message':'Visit {visit_id} deleted successfully'}
 
+#======appointntment endpoints===========
+@app.get('/appointments')
+def get_all_appointments(session: Session = Depends(get_db)):
+    appointments = session.query(Appointment).all()
+    return appointments
+
 @app.post('/appointments')
 def add_appointment(appointment:AppointmentsSchema, session: Session = Depends(get_db)):
     #create an instance model of the visits
@@ -207,8 +243,14 @@ def delete_appointment(appointment_id:int, session: Session = Depends(get_db)):
     }
 
 #=======doctor endpoints========
-@app.get('/doctors')
-def get_all_doctors(doctor_id: int, session: Session = Depends(get_db)):
+
+@app.get('/doctors') # This will now be for getting all doctors
+def get_all_doctors(session: Session = Depends(get_db)):
+    all_doctors = session.query(Doctor).all()
+    return all_doctors
+
+@app.get('/doctors{doctor_id}')
+def get_doctor_by_id(doctor_id: int, session: Session = Depends(get_db)):#this will get
     #gfet all doctors
     doctor = session.query(Doctor).filter(Doctor.id == doctor_id).first()
     if not doctor:
@@ -218,7 +260,7 @@ def get_all_doctors(doctor_id: int, session: Session = Depends(get_db)):
         )
     return doctor
 
-@app.post('/doctors/{doctor_id}')
+@app.post('/doctors')
 def add_doctor(doctor: DoctorsSchema, session: Session = Depends(get_db)):
     # add a new doctor to the db
     new_doctor = Doctor(**doctor.model_dump())
