@@ -1,7 +1,7 @@
 #Import fastapi packages
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import PatientsSchema, VisitsSchema, DoctorsSchema, AppointmentsSchema, PrescriptionSchemea
+from schemas import PatientsSchema, VisitsSchema, DoctorsSchema, AppointmentsSchema, PrescriptionSchema
 from sqlalchemy.orm import Session 
 from models import get_db, Patient, Visit, Doctor, Appointment, Prescription
 
@@ -138,7 +138,6 @@ def update_visit(visit_id: int, visit_data: VisitsSchema, session: Session = Dep
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Visit with id {visit_id} not found"
         )
-    return visit
     
     #add the visit
     #commit visit to the db
@@ -214,6 +213,83 @@ def delete_doctor(doctor_id:int, session: Session = Depends(get_db)):
     #commit the delete
     session.commit()
     return {'message':'doctor {doctor_id} deleted successfully'}
+
+# ========== PRESCRIPTION ENDPOINTS ==========
+@app.get('/prescriptions', response_model=List[PrescriptionSchema])
+def get_all_prescriptions(session: Session = Depends(get_db)):
+    """Get all prescriptions from the database"""
+    prescriptions = session.query(Prescription).all()
+    return prescriptions
+
+@app.get('/prescriptions/{prescription_id}', response_model=PrescriptionSchema)
+def get_prescription(prescription_id: int, session: Session = Depends(get_db)):
+    """Get a single prescription by ID"""
+    prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
+    if not prescription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Prescription with id {prescription_id} not found"
+        )
+    return prescription
+
+@app.post('/prescriptions', status_code=status.HTTP_201_CREATED)
+def add_prescription(prescription: PrescriptionSchema, session: Session = Depends(get_db)):
+    """Add a new prescription to the database"""
+    # Check if visit exists
+    visit = session.query(Visit).filter(Visit.id == prescription.visit_id).first()
+    if not visit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Visit with id {prescription.visit_id} not found"
+        )
+    
+    new_prescription = Prescription(**prescription.model_dump())
+    session.add(new_prescription)
+    session.commit()
+    session.refresh(new_prescription)
+    return {
+        "message": "Prescription created successfully",
+        "prescription_id": new_prescription.id
+    }
+
+@app.patch('/prescriptions/{prescription_id}')
+def update_prescription(prescription_id: int, prescription_data: PrescriptionSchema, session: Session = Depends(get_db)):
+    """Update an existing prescription's information"""
+    prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
+    if not prescription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Prescription with id {prescription_id} not found"
+        )
+    
+    # Update only the fields that are provided in the request
+    update_data = prescription_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(prescription, field, value)
+    
+    session.commit()
+    session.refresh(prescription)
+    return {
+        "message": "Prescription updated successfully",
+        "prescription_id": prescription.id
+    }
+
+@app.delete('/prescriptions/{prescription_id}')
+def delete_prescription(prescription_id: int, session: Session = Depends(get_db)):
+    """Delete a prescription from the database"""
+    prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
+    if not prescription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Prescription with id {prescription_id} not found"
+        )
+    
+    session.delete(prescription)
+    session.commit()
+    return {
+        "message": "Prescription deleted successfully",
+        "prescription_id": prescription_id
+    }
 
 
 
