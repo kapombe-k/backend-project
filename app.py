@@ -29,11 +29,11 @@ def index():
 def get_all_patients(session: Session = Depends(get_db)):
     #to get ALL patients from the db
     patients = session.query(Patient).all()
-    print("Patient id", id)
+    print("Patient id")
     return patients
 
-@app.get('/patients/{patient_id}', response_model=PatientsSchema)
-def get_patient(patient_id: int, session: Session = Depends(get_db)):
+@app.get('/patients/{patient_id}')
+def get_patient(patient_id: int, patient:PatientsSchema ,session: Session = Depends(get_db)):
     # get patient by id
     patient = session.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -65,11 +65,11 @@ def get_patient_appointments(patient_id: int, session: Session = Depends(get_db)
     
 
 # http://localhost:8000/patients -> POST
-@app.post('/patients', status_code=status.HTTP_201_Created)
+@app.post('/patients')
 def add_patients(patient:PatientsSchema, session: Session = Depends(get_db)):
     # create an instance of the product model with the values
-    # check nfor error on existing patient:
-    existing_patient= session.query(Patient).filter(Patient.phone_number == patient.phone_number).first()
+    # check for error on existing patient using patient id:
+    existing_patient= session.query(Patient).filter(Patient.patient_id == patient.patient_id).first()
     if existing_patient:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -116,7 +116,7 @@ def delete_patient(patient_id:int, session: Session = Depends(get_db)):
     session.delete(patient)
     session.commit() 
     # final return
-    return {'message':'Patient {patient_id} deleted successfully'}
+    return {'message': f'Patient {patient_id} deleted successfully'}
 
 # =====visit endpoints======
 @app.get('/visits')
@@ -135,7 +135,7 @@ def get_visit_prescriptions(visit_id: int, session: Session = Depends(get_db)):
         )
     return visit.prescription #to take advantage of list/relationship
 
-@app.post('/visits', status_code=status.HTTP_201_CREATED)
+@app.post('/visits/{visit_id}')
 def add_visit(visit: VisitsSchema, session: Session = Depends(get_db)):
     #Add a new visit to the database
     # Check if patient exists
@@ -164,6 +164,7 @@ def add_visit(visit: VisitsSchema, session: Session = Depends(get_db)):
         "visit_id": new_visit.id
     }
 
+
 @app.patch('/visits/{visit_id}')
 def update_visit(visit_id: int, visit: VisitsSchema, session: Session = Depends(get_db)):
     #get a visit by id
@@ -182,7 +183,7 @@ def update_visit(visit_id: int, visit: VisitsSchema, session: Session = Depends(
     #commit visit to the db
     session.commit()
     session.refresh(visit)
-    return {'message':'Visit {visit.id} added successfully'}
+    return {'message':f'Visit {visit.id} added successfully'}
 
 @app.delete('/visits/{visit_id}')
 def delete_visit(visit_id:int, session: Session = Depends(get_db)):
@@ -197,9 +198,9 @@ def delete_visit(visit_id:int, session: Session = Depends(get_db)):
     session.delete(visit)
     #commit the delete
     session.commit()
-    return {'message':'Visit {visit_id} deleted successfully'}
+    return {'message': f'Visit {visit_id} deleted successfully'}
 
-#======appointntment endpoints===========
+#======appointment endpoints===========
 @app.get('/appointments')
 def get_all_appointments(session: Session = Depends(get_db)):
     appointments = session.query(Appointment).all()
@@ -217,7 +218,7 @@ def add_appointment(appointment:AppointmentsSchema, session: Session = Depends(g
     return {'message':'appointment added successfully'}
 
 @app.patch('/appointments/{appointment_id}')
-def update_appointment(appointment_id: int, appointment=AppointmentsSchema, session: Session = Depends(get_db)):
+def update_appointment(appointment_id: int, appointment:AppointmentsSchema, session: Session = Depends(get_db)):
     appointment = session.query(Appointment).filter(Appointment.id == appointment_id).first()
     #patch the appt
     # Update only the fields that are provided in the request
@@ -228,7 +229,7 @@ def update_appointment(appointment_id: int, appointment=AppointmentsSchema, sess
     #commit the visit to the db
     session.commit()
     session.refresh(appointment)
-    return {'message':'appointment {appointment.id} fixed'}
+    return {'message':f'appointment {appointment.id} fixed'}
 
 @app.delete('/appointments/{id}')
 def delete_appointment(appointment_id:int, session: Session = Depends(get_db)):
@@ -249,7 +250,7 @@ def get_all_doctors(session: Session = Depends(get_db)):
     all_doctors = session.query(Doctor).all()
     return all_doctors
 
-@app.get('/doctors{doctor_id}')
+@app.get('/doctors/{doctor_id}')
 def get_doctor_by_id(doctor_id: int, session: Session = Depends(get_db)):#this will get
     #gfet all doctors
     doctor = session.query(Doctor).filter(Doctor.id == doctor_id).first()
@@ -267,7 +268,7 @@ def add_doctor(doctor: DoctorsSchema, session: Session = Depends(get_db)):
     session.add(new_doctor)
     session.commit()
     session.refresh(new_doctor)
-    return {'message':'Doctor {new_doctor.id} has been added successfully!'}
+    return {'message':f'Doctor {new_doctor.id} has been added successfully!'}
 
 @app.patch('/doctors/{doctor_id}')
 def update_doctor(doctor_id: int, doctor: DoctorsSchema, session: Session = Depends(get_db)):
@@ -278,17 +279,31 @@ def update_doctor(doctor_id: int, doctor: DoctorsSchema, session: Session = Depe
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Doctor with id {doctor_id} not found"
         )
+    update_data = doctor.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(doctor, field, value)
+    
+    #commit the visit to the db
+    session.commit()
+    session.refresh(doctor)
+    return {'message':f'Doctor {doctor.id} fixed'}
 
 @app.delete('/doctors/{doctor_id}')
 def delete_doctor(doctor_id:int, session: Session = Depends(get_db)):
     # delete a doctorfrom the db
     doctor = session.query(Doctor).filter(Doctor.id == doctor_id).first()
+    if not doctor:  # Added existence check
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Doctor with id {doctor_id} not found"
+        )
+
     session.delete(doctor)
     #commit the delete
     session.commit()
-    return {'message':'doctor {doctor_id} deleted successfully'}
+    return {'message': f'doctor {doctor_id} deleted successfully'}
 
-# ========== PRESCRIPTION ENDPOINTS ==========
+# ========== PRESCRIPTION ENDPOINTS ========== to design frontend component for this if time allows
 @app.get('/prescriptions')
 #get all prescriptions
 def get_all_prescriptions(session: Session = Depends(get_db)):
@@ -296,7 +311,7 @@ def get_all_prescriptions(session: Session = Depends(get_db)):
     prescriptions = session.query(Prescription).all()
     return prescriptions
 
-@app.get('/prescriptions/{prescription_id}', prescription=PrescriptionSchema)
+@app.get('/prescriptions/{prescription_id}')
 def get_prescription(prescription_id: int, session: Session = Depends(get_db)):
     """Get a single prescription by ID"""
     prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
@@ -308,17 +323,17 @@ def get_prescription(prescription_id: int, session: Session = Depends(get_db)):
     return prescription
 
 @app.post('/prescriptions')
-def add_prescription(prescription: PrescriptionSchema, session: Session = Depends(get_db)):
+def add_prescription(session: Session = Depends(get_db)):
     """Add a new prescription to the database"""
     # Check if prescription exists
-    visit = session.query(Visit).filter(Visit.id == prescription.visit_id).first()
+    visit = session.query(Visit).filter(Visit.id == prescriptions.visit_id).first()
     if not visit:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Visit with id {prescription.visit_id} not found"
+            detail=f"Visit with id {prescriptions.visit_id} not found"
         )
     
-    new_prescription = Prescription(**prescription.model_dump())
+    new_prescription = Prescription(**prescriptions.model_dump())
     session.add(new_prescription)
     session.commit()
     session.refresh(new_prescription)
@@ -328,7 +343,7 @@ def add_prescription(prescription: PrescriptionSchema, session: Session = Depend
     }
 
 @app.patch('/prescriptions/{prescription_id}')
-def update_prescription(prescription_id: int, prescription_data: PrescriptionSchema, session: Session = Depends(get_db)):
+def update_prescription(prescription_id: int, prescription: PrescriptionSchema, session: Session = Depends(get_db)):
     """Update an existing prescription's information"""
     prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
     if not prescription:
@@ -338,7 +353,7 @@ def update_prescription(prescription_id: int, prescription_data: PrescriptionSch
         )
     
     # Update only the fields that are provided in the request
-    update_data = prescription_data.model_dump(exclude_unset=True)
+    update_data = prescription.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(prescription, field, value)
     
@@ -365,7 +380,3 @@ def delete_prescription(prescription_id: int, session: Session = Depends(get_db)
         "message": "Prescription deleted successfully",
         "prescription_id": prescription_id
     }
-
-
-
-

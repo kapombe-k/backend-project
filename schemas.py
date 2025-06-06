@@ -16,10 +16,14 @@ class VisitsSchema(BaseModel):
     procedure_details: str
     amount_paid: int
     balance: int
-    doctor_id: str
-    patient_id: str
+    doctor_id: int
+    patient_id: int
 
 class AppointmentsSchema(BaseModel):
     patient_id: int
     doctor_id: int
+
+class PrescriptionSchema(BaseModel):
+    details: str
+    visit_id: int
 
